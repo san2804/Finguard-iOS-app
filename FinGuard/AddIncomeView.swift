@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import FirebaseAuth
 
 struct AddIncomeView: View {
     @Environment(\.dismiss) private var dismiss
@@ -150,8 +151,9 @@ struct AddIncomeView: View {
                 year: yearNumber,
                 attachmentURL: nil
             )
-            try await TransactionService.shared.addTransaction(tx, receiptData: receiptData)
-            dismiss()
+            try await TransactionService.shared.add(tx, receiptData: receiptData)
+
+
         } catch {
             errorMessage = error.localizedDescription
         }
