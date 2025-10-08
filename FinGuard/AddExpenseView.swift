@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI   // for optional receipt image
+import FirebaseAuth
 
 struct AddExpenseView: View {
     @Environment(\.dismiss) private var dismiss
@@ -156,8 +157,9 @@ struct AddExpenseView: View {
                 attachmentURL: nil
             )
 
-            try await TransactionService.shared.addTransaction(tx,
-                                                               receiptData: receiptData)
+            try await TransactionService.shared.add(tx, receiptData: receiptData)
+
+
             dismiss()
         } catch {
             errorMessage = error.localizedDescription

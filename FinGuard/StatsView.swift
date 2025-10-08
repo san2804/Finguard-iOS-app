@@ -1,6 +1,7 @@
 import SwiftUI
 import Charts
 import FirebaseAuth
+import FirebaseFirestore
 
 struct StatsView: View {
     @EnvironmentObject var auth: AuthViewModel
@@ -26,7 +27,6 @@ struct StatsView: View {
                             .font(.headline)
                         Spacer()
                         Picker("", selection: $selectedYear) {
-                            // last 5 years including this year
                             let nowYear = Calendar.current.component(.year, from: Date())
                             ForEach((nowYear-4)...nowYear, id: \.self) { y in
                                 Text("\(y)").tag(y)
@@ -37,20 +37,29 @@ struct StatsView: View {
                     }
                     .padding(.horizontal)
 
-                    // Income chart
+                    // Income line chart
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Income (\(selectedYear))")
                             .font(.headline)
                             .padding(.horizontal)
+
                         Chart(monthly) { m in
-                            BarMark(
+                            LineMark(
+                                x: .value("Month", monthLabels[m.monthIndex]),
+                                y: .value("Income", m.income)
+                            )
+                            .interpolationMethod(.monotone)
+                            .foregroundStyle(.green)
+
+                            PointMark(
                                 x: .value("Month", monthLabels[m.monthIndex]),
                                 y: .value("Income", m.income)
                             )
                             .foregroundStyle(.green)
-                            .annotation(position: .top, alignment: .center) {
+                            .symbolSize(30)
+                            .annotation(position: .top) {
                                 if m.income > 0 {
-                                    Text(m.income.formattedAsCurrencyNoSymbol())
+                                    Text(m.income.asCurrencyNoSymbol())
                                         .font(.caption2)
                                         .foregroundStyle(.secondary)
                                 }
@@ -60,20 +69,29 @@ struct StatsView: View {
                         .padding(.horizontal)
                     }
 
-                    // Expense chart
+                    // Expense line chart
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Expenses (\(selectedYear))")
                             .font(.headline)
                             .padding(.horizontal)
+
                         Chart(monthly) { m in
-                            BarMark(
+                            LineMark(
+                                x: .value("Month", monthLabels[m.monthIndex]),
+                                y: .value("Expense", m.expense)
+                            )
+                            .interpolationMethod(.monotone)
+                            .foregroundStyle(.red)
+
+                            PointMark(
                                 x: .value("Month", monthLabels[m.monthIndex]),
                                 y: .value("Expense", m.expense)
                             )
                             .foregroundStyle(.red)
-                            .annotation(position: .top, alignment: .center) {
+                            .symbolSize(30)
+                            .annotation(position: .top) {
                                 if m.expense > 0 {
-                                    Text(m.expense.formattedAsCurrencyNoSymbol())
+                                    Text(m.expense.asCurrencyNoSymbol())
                                         .font(.caption2)
                                         .foregroundStyle(.secondary)
                                 }
@@ -108,8 +126,8 @@ struct StatsView: View {
             var buckets = MonthStat.emptyYear()
             for tx in txs {
                 let m = Calendar.current.component(.month, from: tx.date) - 1 // 0...11
-                if tx.type == .income   { buckets[m].income  += max(0, tx.amount) }
-                if tx.type == .expense  { buckets[m].expense += max(0, tx.amount) }
+                if tx.type == .income  { buckets[m].income  += max(0, tx.amount) }
+                if tx.type == .expense { buckets[m].expense += abs(tx.amount) } // expenses stored negative
             }
             monthly = buckets
         }
@@ -130,7 +148,7 @@ struct MonthStat: Identifiable {
 }
 
 private extension Double {
-    func formattedAsCurrencyNoSymbol() -> String {
+    func asCurrencyNoSymbol() -> String {
         let f = NumberFormatter()
         f.numberStyle = .currency
         f.currencySymbol = ""
